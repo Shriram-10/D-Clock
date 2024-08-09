@@ -5,6 +5,7 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.os.IBinder
+import androidx.compose.runtime.mutableStateOf
 import androidx.core.app.NotificationCompat
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -44,8 +45,9 @@ class RunningService : Service() {
         return dateFormat.format(Date())
     }
 }*/
-
 import java.util.*
+var time = mutableStateOf("00:00:00")
+var alarm = mutableStateOf(false)
 
 class RunningService : Service() {
     private lateinit var timer: Timer
@@ -69,15 +71,15 @@ class RunningService : Service() {
     }
 
     private fun start() {
-        val notification = createNotification()
-        startForeground(1, notification)
+        val notification = if (!alarm.value) createNotification() else createAlarmNotification()
+        startForeground(if (!alarm.value) 1 else 2, notification)
 
         timer = Timer()
         timer.schedule(object : TimerTask() {
             override fun run() {
                 updateNotification()
             }
-        }, 0, 1000) // Update every second
+        }, 0, 1000)
     }
 
     private fun createNotification(): android.app.Notification {
@@ -90,9 +92,44 @@ class RunningService : Service() {
             .build()
     }
 
+    private fun createAlarmNotification () : android.app.Notification {
+        return NotificationCompat.Builder(this, "running_channel")
+            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setContentTitle("Alarm")
+            .setContentText("in ${calculateTimeDifference(time.value)}")
+            .setOngoing(true)
+            .setOnlyAlertOnce(true)
+            .build()
+    }
+
+    fun calculateTimeDifference(givenTimeString: String): String {
+        val dateFormat = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
+        val currentDate = Calendar.getInstance()
+        val givenDate = Calendar.getInstance()
+
+        try {
+            val givenTime = dateFormat.parse(givenTimeString)
+            givenDate.time = givenTime ?: return "Invalid time format"
+
+            givenDate.set(Calendar.YEAR, currentDate.get(Calendar.YEAR))
+            givenDate.set(Calendar.MONTH, currentDate.get(Calendar.MONTH))
+            givenDate.set(Calendar.DAY_OF_MONTH, currentDate.get(Calendar.DAY_OF_MONTH))
+
+            val diffMillis = currentDate.timeInMillis - givenDate.timeInMillis
+
+            val hours = diffMillis / (60 * 60 * 1000)
+            val minutes = (diffMillis % (60 * 60 * 1000)) / (60 * 1000)
+            val seconds = (diffMillis % (60 * 1000)) / 1000
+
+            return String.format("%02d:%02d:%02d", hours, minutes, seconds)
+        } catch (e: Exception) {
+            return "Error: ${e.message}"
+        }
+    }
+
     private fun updateNotification() {
-        val notification = createNotification()
-        notificationManager.notify(1, notification)
+        val notification = if (!alarm.value) createNotification() else createAlarmNotification()
+        notificationManager.notify(if (!alarm.value) 1 else 2, notification)
     }
 
     override fun onDestroy() {

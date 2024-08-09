@@ -10,12 +10,14 @@ import androidx.activity.enableEdgeToEdge
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.Button
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -50,6 +52,9 @@ class MainActivity : ComponentActivity() {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     val context = LocalContext.current
                     val timeNotificationService = TimeNotificationService(context)
+                    var displayTextFields by remember { mutableStateOf(false) }
+                    var hours by remember { mutableStateOf("00") }
+                    var minutes by remember { mutableStateOf("00") }
 
                     Column(
                         modifier = Modifier
@@ -90,23 +95,63 @@ class MainActivity : ComponentActivity() {
 
                         Button (
                             onClick = {
-                                timeNotificationService.showNotification()
+                                timeNotificationService.deleteNotification()
                             }
                         ) {
                             Text("cancel notification")
+                        }
+
+                        Button (
+                            onClick = {
+                                displayTextFields = !displayTextFields
+                            }
+                        ) {
+                            Text ("Set alarm")
+                        }
+
+                        if (displayTextFields) {
+                            Row (
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.Center,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                BasicTextField (
+                                    value = hours,
+                                    onValueChange = {
+                                        hours = it
+                                    }
+                                )
+
+                                Text (
+                                    " : "
+                                )
+
+                                BasicTextField (
+                                    value = minutes,
+                                    onValueChange = {
+                                        minutes = it
+                                    }
+                                )
+                            }
+
+                            Button (
+                                onClick = {
+                                    time.value = "${hours}:${minutes}:00"
+                                    alarm.value.not()
+                                    Intent(applicationContext, RunningService::class.java).also {
+                                        it.action = RunningService.Actions.START.toString()
+                                        startService(it)
+                                    }
+                                }
+                            ) {
+                                Text ("Confirm")
+                            }
+
+                            Text ("alarm set at ${time.value}")
                         }
                     }
                 }
             }
         }
     }
-}
-
-@Composable
-fun Options (
-    modifier : Modifier,
-    start : Intent,
-    stop : Intent
-) {
-
 }

@@ -34,7 +34,7 @@ class TimeNotificationService (private val context : Context) {
     }
 
     fun deleteNotification () {
-        notificationManager.cancelAll()
+        notificationManager.cancel(1)
     }
 
     private fun getCurrentTime(): String {
